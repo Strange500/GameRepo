@@ -70,12 +70,55 @@ See `scripts/example-install.sh` for a template. Key points:
 
 ### Best Practices
 
+- ✅ **CRITICAL**: Script must wait for installation to fully complete before exiting
 - ✅ Print clear status messages
 - ✅ Handle errors gracefully
-- ✅ Set appropriate timeouts (default is 30 seconds)
+- ✅ Set appropriate timeouts (default is 30 minutes)
 - ✅ Test scripts independently before adding to config
 - ✅ Use absolute paths when possible
 - ✅ Validate all inputs
+- ✅ If spawning background processes, wait for them with `wait $PID`
+
+### Critical: Installation Completion
+
+**Your install script MUST NOT exit until the installation is completely finished.**
+
+❌ **WRONG** - Script exits while installer runs in background:
+```bash
+#!/bin/bash
+./game-installer.exe /SILENT &
+exit 0  # Returns immediately!
+```
+
+✅ **CORRECT** - Script waits for completion:
+```bash
+#!/bin/bash
+./game-installer.exe /SILENT
+exit $?  # Returns only after installer completes
+```
+
+✅ **CORRECT** - For background processes:
+```bash
+#!/bin/bash
+./launcher.exe &
+PID=$!
+wait $PID  # Wait for background process
+exit $?
+```
+
+If your installer tool spawns background processes, you must monitor them:
+```bash
+#!/bin/bash
+xvfb-run game-installer.exe &
+INSTALLER_PID=$!
+
+# Wait for actual completion
+while ps -p $INSTALLER_PID > /dev/null 2>&1; do
+    sleep 1
+done
+
+exit 0
+```
 
 ## Security Considerations
 

@@ -173,9 +173,56 @@ The `games-config.json` file defines the catalogue of games. Each game entry inc
 
 You can use any shell command or script for installation:
 
+**⚠️ CRITICAL REQUIREMENT**: Your install command **must wait** for the installation to fully complete before exiting. If your script spawns background processes or detaches the installer, the API will think the installation is complete when it's actually still running.
+
 **Simple Echo Example:**
 ```json
 "installCommand": "echo 'Installing Game...' && sleep 2 && echo 'Done!'"
+```
+
+**Shell Script Example (Correct - Waits for completion):**
+```bash
+#!/bin/bash
+# install-game.sh
+./installer.exe /SILENT
+# Script waits for installer.exe to complete before exiting
+exit $?
+```
+
+**Shell Script Example (INCORRECT - Returns immediately):**
+```bash
+#!/bin/bash
+# install-game.sh - DON'T DO THIS!
+./installer.exe /SILENT &
+# Script exits immediately while installer runs in background
+exit 0
+```
+
+**Handling Background Processes:**
+If your installer tool spawns background processes, you must wait for them:
+```bash
+#!/bin/bash
+my-installer-tool setup.exe &
+INSTALLER_PID=$!
+wait $INSTALLER_PID
+EXIT_CODE=$?
+exit $EXIT_CODE
+```
+
+**Monitoring Process Completion:**
+For installers that detach, monitor the actual process:
+```bash
+#!/bin/bash
+# Start installer
+xvfb-run installer.exe &
+INSTALLER_PID=$!
+
+# Wait for the actual installer process to complete
+while ps -p $INSTALLER_PID > /dev/null 2>&1; do
+    sleep 1
+done
+
+exit 0
 ```
 
 **Shell Script Example:**
@@ -313,6 +360,28 @@ The timeout setting:
 - Configurable per deployment without code changes
 
 ## Troubleshooting
+
+### Installation Never Completes (Loading State Stuck)
+
+If the installation appears to complete but the UI stays in "Installing..." state forever:
+
+**Cause**: Your install script is exiting before the actual installation finishes (spawning background processes).
+
+**Solution**: Modify your install command to wait for completion:
+
+```bash
+# If using a script that backgrounds processes
+your-installer-tool game.exe &
+PID=$!
+wait $PID
+
+# Or monitor for specific completion indicators
+while pgrep -f "installer.exe" > /dev/null; do
+    sleep 1
+done
+```
+
+**Verify your script waits** by running it manually and confirming it doesn't return until installation is truly complete.
 
 ### Installation Fails Due to Timeout
 
