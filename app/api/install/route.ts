@@ -6,6 +6,17 @@ import type { InstallResponse } from '@/types/game';
 
 const execPromise = promisify(exec);
 
+// Get the appropriate shell for the platform
+function getShellPath(): string | undefined {
+  if (process.platform === 'win32') {
+    // On Windows, use cmd.exe or powershell
+    return process.env.ComSpec || 'cmd.exe';
+  } else {
+    // On Unix-like systems, try to find bash, sh, or use default
+    return process.env.SHELL || '/bin/sh';
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { gameId } = await request.json();
@@ -33,9 +44,11 @@ export async function POST(request: NextRequest) {
 
     try {
       // Execute the install command
+      // Use platform's default shell (cross-platform compatible)
+      const shellPath = getShellPath();
       const { stdout, stderr } = await execPromise(installCommand, {
         timeout: 30000, // 30 second timeout
-        shell: '/bin/bash',
+        shell: shellPath,
       });
 
       console.log(`Install output for ${gameId}:`, stdout);
