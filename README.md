@@ -6,6 +6,8 @@ A modern, minimalist web application built with Next.js and TypeScript that disp
 
 - 🎮 **Game Grid Display**: Browse games in a clean, responsive grid layout
 - 🖼️ **Visual Cards**: Each game card shows cover image, title, and description
+- 🎨 **SteamGridDB Integration**: Automatically fetch high-quality game cover images from SteamGridDB
+- 💾 **Smart Caching**: Cache game metadata to minimize API calls and improve performance
 - ⚡ **One-Click Install**: Hover over a game card to reveal the install button
 - 📊 **Real-time Status**: Visual feedback for installation states (Idle, Installing, Installed, Failed)
 - 🔒 **Secure Execution**: Only commands defined in config file can be executed
@@ -65,10 +67,15 @@ cd GameRepo
 # 2. Install dependencies
 npm install
 
-# 3. Run the development server
+# 3. (Optional) Configure SteamGridDB API key for automatic game images
+cp .env.local.example .env.local
+# Edit .env.local and add your SteamGridDB API key
+# Get your API key from: https://www.steamgriddb.com/profile/preferences
+
+# 4. Run the development server
 npm run dev
 
-# 4. Open http://localhost:3000 in your browser
+# 5. Open http://localhost:3000 in your browser
 ```
 
 That's it! The application will be running and you can start browsing and installing games.
@@ -168,6 +175,78 @@ The `games-config.json` file defines the catalogue of games. Each game entry inc
 2. Install commands are properly validated and tested
 3. Commands don't require elevated privileges unless necessary
 4. The application is run in a secure environment
+
+### Custom Install Scripts
+
+You can use any shell command or script for installation:
+
+**⚠️ CRITICAL REQUIREMENT**: Your install command **must wait** for the installation to fully complete before exiting. If your script spawns background processes or detaches the installer, the API will think the installation is complete when it's actually still running.
+
+## SteamGridDB Integration
+
+The application integrates with [SteamGridDB](https://www.steamgriddb.com/) to automatically fetch high-quality cover images for games in your catalogue.
+
+### Setting Up SteamGridDB
+
+1. **Get an API Key**:
+   - Visit [SteamGridDB Preferences](https://www.steamgriddb.com/profile/preferences)
+   - Create an account or sign in
+   - Generate an API key
+
+2. **Configure the Application**:
+   ```bash
+   # Copy the example environment file
+   cp .env.local.example .env.local
+   
+   # Edit .env.local and add your API key
+   STEAMGRIDDB_API_KEY=your_actual_api_key_here
+   ```
+
+3. **Restart the Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+### How It Works
+
+- **Automatic Fetching**: When the application starts, it queries SteamGridDB for each game in `games-config.json` using the game's title
+- **Smart Caching**: Fetched images are cached in `.cache/steamgriddb.json` for 7 days to minimize API calls
+- **Graceful Fallback**: If SteamGridDB is unavailable or a game isn't found, the application uses the `coverImage` URL from `games-config.json`
+- **Server-Side Only**: All SteamGridDB API calls happen server-side, keeping your API key secure
+
+### Cache Management
+
+The cache is stored in `.cache/steamgriddb.json` and includes:
+- Game ID from SteamGridDB
+- Game name
+- Image URL
+- Timestamp of when the data was cached
+
+To clear the cache:
+```bash
+rm -rf .cache/steamgriddb.json
+```
+
+The cache will be automatically regenerated on the next request.
+
+### Benefits
+
+- ✅ **High-Quality Images**: Get official, high-resolution game cover art
+- ✅ **Automatic Updates**: Images are refreshed every 7 days
+- ✅ **Reduced Maintenance**: No need to manually source and update game images
+- ✅ **Consistent Look**: Professional grid artwork for all games
+- ✅ **Rate Limit Friendly**: Caching prevents excessive API calls
+
+### Troubleshooting
+
+**Images not loading?**
+1. Check that your API key is correctly set in `.env.local`
+2. Verify the API key is valid on [SteamGridDB](https://www.steamgriddb.com/profile/preferences)
+3. Check the console for error messages
+4. Ensure the game names in `games-config.json` match actual game titles
+
+**Want to use without SteamGridDB?**
+Simply don't configure the `STEAMGRIDDB_API_KEY` environment variable. The application will use the `coverImage` URLs from `games-config.json` as fallbacks.
 
 ### Custom Install Scripts
 

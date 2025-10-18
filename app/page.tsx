@@ -1,7 +1,29 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import GameCard from '@/components/GameCard';
-import gamesConfig from '@/games-config.json';
+import type { Game } from '@/types/game';
 
 export default function Home() {
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadGames() {
+      try {
+        const response = await fetch('/api/games');
+        const data = await response.json();
+        setGames(data.games || []);
+      } catch (error) {
+        console.error('Failed to load games:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadGames();
+  }, []);
+
   return (
     <main className="min-h-screen bg-gray-950">
       {/* Header */}
@@ -14,11 +36,17 @@ export default function Home() {
 
       {/* Game Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {gamesConfig.games.map((game) => (
-            <GameCard key={game.id} game={game} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-gray-400">Loading games...</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {games.map((game) => (
+              <GameCard key={game.id} game={game} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
