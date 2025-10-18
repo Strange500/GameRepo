@@ -27,6 +27,24 @@ A modern, minimalist web application built with Next.js and TypeScript that disp
 - Node.js 18.x or later
 - npm or yarn
 
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd GameRepo
+
+# 2. Install dependencies
+npm install
+
+# 3. Run the development server
+npm run dev
+
+# 4. Open http://localhost:3000 in your browser
+```
+
+That's it! The application will be running and you can start browsing and installing games.
+
 ### Installation
 
 1. Clone the repository:
