@@ -6,6 +6,10 @@ import type { InstallResponse } from '@/types/game';
 
 const execPromise = promisify(exec);
 
+// Configurable timeout for install commands (default: 30 minutes)
+// Can be overridden via INSTALL_TIMEOUT_MS environment variable
+const INSTALL_TIMEOUT_MS = parseInt(process.env.INSTALL_TIMEOUT_MS || '1800000', 10);
+
 // Get the appropriate shell for the platform
 function getShellPath(): string | undefined {
   if (process.platform === 'win32') {
@@ -47,13 +51,17 @@ export async function POST(request: NextRequest) {
       // Use platform's default shell (cross-platform compatible)
       const shellPath = getShellPath();
       const { stdout, stderr } = await execPromise(installCommand, {
-        timeout: 30000, // 30 second timeout
+        timeout: INSTALL_TIMEOUT_MS, // Configurable timeout (default: 30 minutes)
         shell: shellPath,
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for long outputs
       });
 
       console.log(`Install output for ${gameId}:`, stdout);
+      
+      // Log stderr but don't treat it as an error unless the command failed
+      // Many installers output warnings and info to stderr
       if (stderr) {
-        console.error(`Install errors for ${gameId}:`, stderr);
+        console.log(`Install stderr for ${gameId}:`, stderr);
       }
 
       const response: InstallResponse = {

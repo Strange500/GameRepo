@@ -291,16 +291,41 @@ The changes will be reflected immediately in development mode.
 
 ### Timeout Configuration
 
-The default installation timeout is 30 seconds. To modify, edit `app/api/install/route.ts`:
+The default installation timeout is 30 minutes (1800000ms). For long-running game installations, you can configure this via environment variable:
 
-```typescript
-const { stdout, stderr } = await execPromise(installCommand, {
-  timeout: 60000, // Change to 60 seconds
-  shell: '/bin/bash',
-});
+```bash
+# Set timeout to 1 hour (3600000ms)
+INSTALL_TIMEOUT_MS=3600000 npm run dev
+
+# Or in production
+INSTALL_TIMEOUT_MS=3600000 npm start
 ```
 
+You can also set it in a `.env.local` file:
+```
+INSTALL_TIMEOUT_MS=3600000
+```
+
+The timeout setting:
+- Default: 30 minutes (1800000ms)
+- Prevents installations from running indefinitely
+- Should be set based on your largest game installation time
+- Configurable per deployment without code changes
+
 ## Troubleshooting
+
+### Installation Fails Due to Timeout
+
+If you see errors like `SIGTERM` or timeout errors:
+
+1. Increase the timeout using the `INSTALL_TIMEOUT_MS` environment variable
+2. Check if the installation actually needs that much time
+3. Consider optimizing your install scripts for faster execution
+
+Example for very large games:
+```bash
+INSTALL_TIMEOUT_MS=7200000 npm run dev  # 2 hours
+```
 
 ### Installation Fails
 
@@ -308,6 +333,7 @@ const { stdout, stderr } = await execPromise(installCommand, {
 2. Verify the install command works in terminal
 3. Ensure proper permissions for executing scripts
 4. Check server logs: `npm run dev` shows API errors
+5. Note that stderr output doesn't always mean failure - many installers output warnings to stderr
 
 ### Images Not Loading
 
