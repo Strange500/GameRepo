@@ -7,7 +7,20 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    let
+      # NixOS module for the game installer app
+      nixosModule = import ./nixos/modules/game-installer-app.nix;
+    in
+    {
+      # NixOS module available to all systems
+      nixosModules.default = nixosModule;
+      nixosModules.game-installer-app = nixosModule;
+
+      # Overlay to make the package available in nixpkgs
+      overlays.default = final: prev: {
+        game-installer-app = self.packages.${final.system}.game-catalogue;
+      };
+    } // flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         
@@ -66,6 +79,7 @@
         packages = {
           default = gameCatalogue;
           game-catalogue = gameCatalogue;
+          game-installer-app = gameCatalogue; # Alias for the NixOS module
         };
         
         # Development shell with all dependencies

@@ -498,7 +498,43 @@ PORT=3001 npm run dev
 
 ## Nix Support
 
-This project includes a Nix flake for reproducible development environments and builds.
+This project includes a Nix flake for reproducible development environments, builds, and **declarative NixOS deployment**.
+
+### NixOS Module
+
+The flake includes a NixOS module for declarative deployment! 🎉
+
+**Quick Example:**
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, game-installer-app, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        game-installer-app.nixosModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            openFirewall = true;
+            # Optional: use sops-nix for secrets
+            # envFile = config.sops.secrets.game-installer-env.path;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
+**📚 Full Documentation**: See [NIXOS_MODULE.md](./NIXOS_MODULE.md) for complete documentation including:
+- All configuration options
+- sops-nix integration for secrets
+- Reverse proxy setup examples
+- Security hardening features
 
 ### Using Nix Flakes
 
@@ -540,6 +576,7 @@ nix run github:Strange500/GameRepo
 - TypeScript and language server
 - Pre-configured development environment
 - One-command build and run
+- **NixOS module for declarative deployment**
 
 ### Enabling Nix Flakes
 
@@ -547,6 +584,8 @@ If you don't have flakes enabled, add this to `~/.config/nix/nix.conf` or `/etc/
 ```
 experimental-features = nix-command flakes
 ```
+
+For more details on Nix usage, see [NIX.md](./NIX.md).
 
 ## Contributing
 

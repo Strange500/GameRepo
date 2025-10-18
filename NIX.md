@@ -268,12 +268,44 @@ jobs:
       - run: nix flake check
 ```
 
+## NixOS Module
+
+This flake includes a NixOS module for declarative deployment! 🎉
+
+See [NIXOS_MODULE.md](./NIXOS_MODULE.md) for detailed documentation.
+
+Quick example:
+
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, game-installer-app, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        game-installer-app.nixosModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            openFirewall = true;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
 ## Additional Resources
 
 - [Nix Manual](https://nixos.org/manual/nix/stable/)
 - [Nix Flakes](https://nixos.wiki/wiki/Flakes)
 - [direnv Documentation](https://direnv.net/)
 - [NixOS Weekly Newsletter](https://weekly.nixos.org/)
+- [NixOS Module Documentation](./NIXOS_MODULE.md) - **New!**
 
 ## Getting Help
 
