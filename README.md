@@ -27,7 +27,35 @@ A modern, minimalist web application built with Next.js and TypeScript that disp
 - Node.js 18.x or later
 - npm or yarn
 
-### Quick Start
+**OR**
+
+- Nix with flakes enabled
+
+### Quick Start with Nix (Recommended)
+
+If you have Nix installed with flakes enabled, you can start the application instantly:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd GameRepo
+
+# Enter development environment
+nix develop
+
+# Install dependencies and run
+npm install
+npm run dev
+```
+
+Or run directly without cloning:
+
+```bash
+# Run the application directly
+nix run github:Strange500/GameRepo
+```
+
+### Quick Start with npm
 
 ```bash
 # 1. Clone the repository
@@ -46,6 +74,28 @@ npm run dev
 That's it! The application will be running and you can start browsing and installing games.
 
 ### Installation
+
+#### Option 1: Using Nix
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd GameRepo
+
+# Enter the Nix development shell
+nix develop
+
+# The environment is now set up with Node.js and all tools
+npm install
+npm run dev
+```
+
+For automatic environment loading, install [direnv](https://direnv.net/) and run:
+```bash
+direnv allow
+```
+
+#### Option 2: Using npm/yarn
 
 1. Clone the repository:
 ```bash
@@ -67,6 +117,16 @@ npm run dev
 
 ### Building for Production
 
+#### With Nix:
+```bash
+# Build the package
+nix build
+
+# Run the built package
+./result/bin/game-catalogue
+```
+
+#### With npm:
 ```bash
 npm run build
 npm start
@@ -260,6 +320,58 @@ const { stdout, stderr } = await execPromise(installCommand, {
 If port 3000 is busy, start on a different port:
 ```bash
 PORT=3001 npm run dev
+```
+
+## Nix Support
+
+This project includes a Nix flake for reproducible development environments and builds.
+
+### Using Nix Flakes
+
+**Prerequisites:**
+- Nix package manager installed
+- Flakes enabled in your Nix configuration
+
+**Development Environment:**
+```bash
+# Enter development shell with all dependencies
+nix develop
+
+# Or use direnv for automatic environment loading
+echo "use flake" > .envrc
+direnv allow
+```
+
+**Building:**
+```bash
+# Build the application
+nix build
+
+# Run the built application
+./result/bin/game-catalogue
+```
+
+**Running Directly:**
+```bash
+# Run without building
+nix run
+
+# Run from GitHub without cloning
+nix run github:Strange500/GameRepo
+```
+
+**What's Included:**
+- Node.js 20
+- npm and all required build tools
+- TypeScript and language server
+- Pre-configured development environment
+- One-command build and run
+
+### Enabling Nix Flakes
+
+If you don't have flakes enabled, add this to `~/.config/nix/nix.conf` or `/etc/nix/nix.conf`:
+```
+experimental-features = nix-command flakes
 ```
 
 ## Contributing
