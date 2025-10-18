@@ -1,0 +1,46 @@
+{
+  "games": [
+    {
+      "id": "minecraft",
+      "title": "Minecraft",
+      "description": "A sandbox video game that allows players to build with a variety of different blocks in a 3D procedurally generated world.",
+      "coverImage": "https://images.unsplash.com/photo-1553481187-be93c21490a9?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Minecraft...' && sleep 3 && echo 'Minecraft installed successfully!'"
+    },
+    {
+      "id": "terraria",
+      "title": "Terraria",
+      "description": "An action-adventure sandbox game with 2D sprite tile-based graphics in a procedurally generated world.",
+      "coverImage": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Terraria...' && sleep 2 && echo 'Terraria installed successfully!'"
+    },
+    {
+      "id": "stardew-valley",
+      "title": "Stardew Valley",
+      "description": "A simulation role-playing game where you inherit your grandfather's old farm plot in Stardew Valley.",
+      "coverImage": "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Stardew Valley...' && sleep 3 && echo 'Stardew Valley installed successfully!'"
+    },
+    {
+      "id": "hollow-knight",
+      "title": "Hollow Knight",
+      "description": "A challenging 2D action-adventure game set in a vast interconnected underground kingdom.",
+      "coverImage": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Hollow Knight...' && sleep 2 && echo 'Hollow Knight installed successfully!'"
+    },
+    {
+      "id": "celeste",
+      "title": "Celeste",
+      "description": "A platforming video game about climbing a mountain while overcoming your inner demons.",
+      "coverImage": "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Celeste...' && sleep 2 && echo 'Celeste installed successfully!'"
+    },
+    {
+      "id": "portal-2",
+      "title": "Portal 2",
+      "description": "A first-person puzzle-platform game that uses physics and logic to solve challenges.",
+      "coverImage": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&h=300&fit=crop",
+      "installCommand": "echo 'Installing Portal 2...' && sleep 3 && echo 'Portal 2 installed successfully!'"
+    }
+  ]
+}
