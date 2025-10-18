@@ -6,9 +6,9 @@ import type { InstallResponse } from '@/types/game';
 
 const execPromise = promisify(exec);
 
-// Configurable timeout for install commands (default: 30 minutes)
+// Configurable timeout for install commands (default: 24 hours)
 // Can be overridden via INSTALL_TIMEOUT_MS environment variable
-const INSTALL_TIMEOUT_MS = parseInt(process.env.INSTALL_TIMEOUT_MS || '1800000', 10);
+const INSTALL_TIMEOUT_MS = parseInt(process.env.INSTALL_TIMEOUT_MS || '86400000', 10);
 
 // Get the appropriate shell for the platform
 function getShellPath(): string | undefined {
