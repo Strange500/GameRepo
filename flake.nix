@@ -13,6 +13,55 @@
       
       # Home Manager module for the game installer app
       homeManagerModule = import ./home-manager/modules/game-installer-app.nix;
+      
+      # Function to build the game catalogue package
+      buildGameCatalogue = pkgs: pkgs.stdenv.mkDerivation {
+        pname = "game-catalogue";
+        version = "1.0.0";
+        
+        src = ./.;
+        
+        nativeBuildInputs = [ pkgs.nodejs_20 ];
+        
+        buildPhase = ''
+          export HOME=$TMPDIR
+          npm ci --legacy-peer-deps
+          npm run build
+        '';
+        
+        installPhase = ''
+          mkdir -p $out/bin $out/lib
+          
+          # Copy application files
+          cp -r .next $out/lib/
+          cp -r public $out/lib/ || true
+          cp -r node_modules $out/lib/
+          cp package.json $out/lib/
+          cp next.config.ts $out/lib/
+          cp games-config.json $out/lib/
+          cp -r scripts $out/lib/ || true
+          cp -r app $out/lib/
+          cp -r components $out/lib/
+          cp -r types $out/lib/
+          cp postcss.config.mjs $out/lib/
+          cp tsconfig.json $out/lib/
+          
+          # Create startup script
+          cat > $out/bin/game-catalogue <<EOF
+          #!/bin/sh
+          cd $out/lib
+          exec ${pkgs.nodejs_20}/bin/node node_modules/.bin/next start "\$@"
+          EOF
+          
+          chmod +x $out/bin/game-catalogue
+        '';
+        
+        meta = with pkgs.lib; {
+          description = "Game catalogue with install script support";
+          license = licenses.isc;
+          platforms = platforms.all;
+        };
+      };
     in
     {
       # NixOS module available to all systems
@@ -25,62 +74,15 @@
 
       # Overlay to make the package available in nixpkgs
       overlays.default = final: prev: {
-        game-installer-app = self.packages.${final.system}.game-catalogue;
+        game-installer-app = buildGameCatalogue final;
       };
     } // flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        
         nodejs = pkgs.nodejs_20;
         
-        # Build the application
-        gameCatalogue = pkgs.stdenv.mkDerivation {
-          pname = "game-catalogue";
-          version = "1.0.0";
-          
-          src = ./.;
-          
-          nativeBuildInputs = [ nodejs ];
-          
-          buildPhase = ''
-            export HOME=$TMPDIR
-            npm ci --legacy-peer-deps
-            npm run build
-          '';
-          
-          installPhase = ''
-            mkdir -p $out/bin $out/lib
-            
-            # Copy application files
-            cp -r .next $out/lib/
-            cp -r public $out/lib/ || true
-            cp -r node_modules $out/lib/
-            cp package.json $out/lib/
-            cp next.config.ts $out/lib/
-            cp games-config.json $out/lib/
-            cp -r scripts $out/lib/ || true
-            cp -r app $out/lib/
-            cp -r components $out/lib/
-            cp -r types $out/lib/
-            cp postcss.config.mjs $out/lib/
-            cp tsconfig.json $out/lib/
-            
-            # Create startup script
-            cat > $out/bin/game-catalogue <<EOF
-            #!/bin/sh
-            cd $out/lib
-            exec ${nodejs}/bin/node node_modules/.bin/next start "\$@"
-            EOF
-            
-            chmod +x $out/bin/game-catalogue
-          '';
-          
-          meta = with pkgs.lib; {
-            description = "Game catalogue with install script support";
-            license = licenses.isc;
-            platforms = platforms.all;
-          };
-        };
+        # Build the application using the shared function
+        gameCatalogue = buildGameCatalogue pkgs;
         
       in {
         packages = {
