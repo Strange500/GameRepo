@@ -86,13 +86,21 @@ Now the environment loads automatically when you enter the directory!
 
 ### 3. Building the Package
 
-Build the complete application:
+**Important:** The first time you build the package (or after updating `package-lock.json`), the build will fail with a hash mismatch error. This is expected!
 
+**Quick fix:**
 ```bash
+./update-npm-hash.sh
 nix build
 ```
 
-This creates a `result` symlink with the built application.
+**Manual fix:**
+1. Run `nix build` - it will fail and show the correct hash
+2. Copy the hash from the error message (the line starting with `got:`)
+3. Update the `npmDepsHash` in `flake.nix` with this hash
+4. Run `nix build` again
+
+The build creates a `result` symlink with the built application.
 
 Run it:
 ```bash

@@ -15,21 +15,38 @@
       homeManagerModule = import ./home-manager/modules/game-installer-app.nix;
       
       # Function to build the game catalogue package
-      buildGameCatalogue = pkgs: pkgs.stdenv.mkDerivation {
+      buildGameCatalogue = pkgs: pkgs.buildNpmPackage {
         pname = "game-catalogue";
         version = "1.0.0";
         
         src = ./.;
         
-        nativeBuildInputs = [ pkgs.nodejs_20 ];
+        # IMPORTANT: This hash needs to be updated when package-lock.json changes
+        # 
+        # First time setup or after dependency changes:
+        # 1. Run: ./update-npm-hash.sh (automatic)
+        #    OR
+        # 2. Run: nix build
+        #    The build will fail and show the correct hash
+        #    Copy the hash and replace the line below
+        # 
+        # See NPM_HASH.md for more details
+        npmDepsHash = pkgs.lib.fakeHash;
         
+        # Use legacy peer deps for compatibility
+        npmFlags = [ "--legacy-peer-deps" ];
+        
+        # Build the Next.js application
         buildPhase = ''
+          runHook preBuild
           export HOME=$TMPDIR
-          npm ci --legacy-peer-deps
           npm run build
+          runHook postBuild
         '';
         
         installPhase = ''
+          runHook preInstall
+          
           mkdir -p $out/bin $out/lib
           
           # Copy application files
@@ -54,6 +71,8 @@
           EOF
           
           chmod +x $out/bin/game-catalogue
+          
+          runHook postInstall
         '';
         
         meta = with pkgs.lib; {
