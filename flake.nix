@@ -31,7 +31,7 @@
         #    Copy the hash and replace the line below
         # 
         # See NPM_HASH.md for more details
-        npmDepsHash = pkgs.lib.fakeHash;
+        npmDepsHash = "sha256-LUZQNpOj/eaMat6PB0pt12tU/rM+UVxxjCwXwFyj3Xo=";
         
         # Use legacy peer deps for compatibility
         npmFlags = [ "--legacy-peer-deps" ];
