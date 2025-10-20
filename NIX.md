@@ -86,13 +86,21 @@ Now the environment loads automatically when you enter the directory!
 
 ### 3. Building the Package
 
-Build the complete application:
+**Important:** The first time you build the package (or after updating `package-lock.json`), the build will fail with a hash mismatch error. This is expected!
 
+**Quick fix:**
 ```bash
+./update-npm-hash.sh
 nix build
 ```
 
-This creates a `result` symlink with the built application.
+**Manual fix:**
+1. Run `nix build` - it will fail and show the correct hash
+2. Copy the hash from the error message (the line starting with `got:`)
+3. Update the `npmDepsHash` in `flake.nix` with this hash
+4. Run `nix build` again
+
+The build creates a `result` symlink with the built application.
 
 Run it:
 ```bash
@@ -268,12 +276,76 @@ jobs:
       - run: nix flake check
 ```
 
+## NixOS Module
+
+This flake includes a NixOS module for system-wide declarative deployment! 🎉
+
+See [NIXOS_MODULE.md](./NIXOS_MODULE.md) for detailed documentation.
+
+Quick example:
+
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, game-installer-app, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        game-installer-app.nixosModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            openFirewall = true;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
+## Home Manager Module
+
+This flake also includes a Home Manager module for user-level declarative deployment! 🏠
+
+See [HOME_MANAGER_MODULE.md](./HOME_MANAGER_MODULE.md) for detailed documentation.
+
+Quick example:
+
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, home-manager, game-installer-app, ... }: {
+    homeConfigurations.myuser = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      modules = [
+        game-installer-app.homeManagerModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
 ## Additional Resources
 
 - [Nix Manual](https://nixos.org/manual/nix/stable/)
 - [Nix Flakes](https://nixos.wiki/wiki/Flakes)
 - [direnv Documentation](https://direnv.net/)
 - [NixOS Weekly Newsletter](https://weekly.nixos.org/)
+- [NixOS Module Documentation](./NIXOS_MODULE.md) - System-wide deployment
+- [Home Manager Module Documentation](./HOME_MANAGER_MODULE.md) - User-level deployment
 
 ## Getting Help
 

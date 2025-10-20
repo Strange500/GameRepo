@@ -498,7 +498,83 @@ PORT=3001 npm run dev
 
 ## Nix Support
 
-This project includes a Nix flake for reproducible development environments and builds.
+This project includes a Nix flake for reproducible development environments, builds, and **declarative deployment** (NixOS and Home Manager).
+
+### NixOS Module
+
+The flake includes a NixOS module for system-wide declarative deployment! 🎉
+
+**Quick Example:**
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, game-installer-app, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        game-installer-app.nixosModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            openFirewall = true;
+            # Optional: use sops-nix for secrets
+            # envFile = config.sops.secrets.game-installer-env.path;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
+**📚 Full Documentation**: See [NIXOS_MODULE.md](./NIXOS_MODULE.md) for complete documentation including:
+- All configuration options
+- sops-nix integration for secrets
+- Reverse proxy setup examples
+- Security hardening features
+
+### Home Manager Module
+
+The flake also includes a Home Manager module for user-level deployment! 🏠
+
+**Quick Example:**
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, home-manager, game-installer-app, ... }: {
+    homeConfigurations.myuser = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      modules = [
+        game-installer-app.homeManagerModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            # Optional: specify an environment file for secrets
+            # envFile = "${config.home.homeDirectory}/.secrets/game-installer.env";
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
+**📚 Full Documentation**: See [HOME_MANAGER_MODULE.md](./HOME_MANAGER_MODULE.md) for complete documentation including:
+- All configuration options
+- sops-nix integration for user secrets
+- Service management commands
+- Comparison with NixOS module
+
+**When to use which:**
+- **NixOS Module**: System-wide deployment, production servers, multi-user systems
+- **Home Manager Module**: Personal use, no root required, development/testing
 
 ### Using Nix Flakes
 
@@ -540,6 +616,8 @@ nix run github:Strange500/GameRepo
 - TypeScript and language server
 - Pre-configured development environment
 - One-command build and run
+- **NixOS module for system-wide declarative deployment**
+- **Home Manager module for user-level declarative deployment**
 
 ### Enabling Nix Flakes
 
@@ -547,6 +625,8 @@ If you don't have flakes enabled, add this to `~/.config/nix/nix.conf` or `/etc/
 ```
 experimental-features = nix-command flakes
 ```
+
+For more details on Nix usage, see [NIX.md](./NIX.md).
 
 ## Contributing
 
