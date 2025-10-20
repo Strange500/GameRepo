@@ -10,11 +10,18 @@
     let
       # NixOS module for the game installer app
       nixosModule = import ./nixos/modules/game-installer-app.nix;
+      
+      # Home Manager module for the game installer app
+      homeManagerModule = import ./home-manager/modules/game-installer-app.nix;
     in
     {
       # NixOS module available to all systems
       nixosModules.default = nixosModule;
       nixosModules.game-installer-app = nixosModule;
+
+      # Home Manager module available to all systems
+      homeManagerModules.default = homeManagerModule;
+      homeManagerModules.game-installer-app = homeManagerModule;
 
       # Overlay to make the package available in nixpkgs
       overlays.default = final: prev: {

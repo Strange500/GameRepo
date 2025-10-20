@@ -498,11 +498,11 @@ PORT=3001 npm run dev
 
 ## Nix Support
 
-This project includes a Nix flake for reproducible development environments, builds, and **declarative NixOS deployment**.
+This project includes a Nix flake for reproducible development environments, builds, and **declarative deployment** (NixOS and Home Manager).
 
 ### NixOS Module
 
-The flake includes a NixOS module for declarative deployment! 🎉
+The flake includes a NixOS module for system-wide declarative deployment! 🎉
 
 **Quick Example:**
 ```nix
@@ -535,6 +535,46 @@ The flake includes a NixOS module for declarative deployment! 🎉
 - sops-nix integration for secrets
 - Reverse proxy setup examples
 - Security hardening features
+
+### Home Manager Module
+
+The flake also includes a Home Manager module for user-level deployment! 🏠
+
+**Quick Example:**
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, home-manager, game-installer-app, ... }: {
+    homeConfigurations.myuser = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      modules = [
+        game-installer-app.homeManagerModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+            # Optional: specify an environment file for secrets
+            # envFile = "${config.home.homeDirectory}/.secrets/game-installer.env";
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
+**📚 Full Documentation**: See [HOME_MANAGER_MODULE.md](./HOME_MANAGER_MODULE.md) for complete documentation including:
+- All configuration options
+- sops-nix integration for user secrets
+- Service management commands
+- Comparison with NixOS module
+
+**When to use which:**
+- **NixOS Module**: System-wide deployment, production servers, multi-user systems
+- **Home Manager Module**: Personal use, no root required, development/testing
 
 ### Using Nix Flakes
 
@@ -576,7 +616,8 @@ nix run github:Strange500/GameRepo
 - TypeScript and language server
 - Pre-configured development environment
 - One-command build and run
-- **NixOS module for declarative deployment**
+- **NixOS module for system-wide declarative deployment**
+- **Home Manager module for user-level declarative deployment**
 
 ### Enabling Nix Flakes
 

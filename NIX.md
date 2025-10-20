@@ -270,7 +270,7 @@ jobs:
 
 ## NixOS Module
 
-This flake includes a NixOS module for declarative deployment! 🎉
+This flake includes a NixOS module for system-wide declarative deployment! 🎉
 
 See [NIXOS_MODULE.md](./NIXOS_MODULE.md) for detailed documentation.
 
@@ -299,13 +299,45 @@ Quick example:
 }
 ```
 
+## Home Manager Module
+
+This flake also includes a Home Manager module for user-level declarative deployment! 🏠
+
+See [HOME_MANAGER_MODULE.md](./HOME_MANAGER_MODULE.md) for detailed documentation.
+
+Quick example:
+
+```nix
+{
+  inputs.game-installer-app.url = "github:Strange500/GameRepo";
+  
+  outputs = { nixpkgs, home-manager, game-installer-app, ... }: {
+    homeConfigurations.myuser = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      modules = [
+        game-installer-app.homeManagerModules.default
+        ({ pkgs, ... }: {
+          nixpkgs.overlays = [ game-installer-app.overlays.default ];
+          
+          services.game-installer-app = {
+            enable = true;
+            port = 3000;
+          };
+        })
+      ];
+    };
+  };
+}
+```
+
 ## Additional Resources
 
 - [Nix Manual](https://nixos.org/manual/nix/stable/)
 - [Nix Flakes](https://nixos.wiki/wiki/Flakes)
 - [direnv Documentation](https://direnv.net/)
 - [NixOS Weekly Newsletter](https://weekly.nixos.org/)
-- [NixOS Module Documentation](./NIXOS_MODULE.md) - **New!**
+- [NixOS Module Documentation](./NIXOS_MODULE.md) - System-wide deployment
+- [Home Manager Module Documentation](./HOME_MANAGER_MODULE.md) - User-level deployment
 
 ## Getting Help
 
