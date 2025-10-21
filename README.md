@@ -261,6 +261,33 @@ The application integrates with [SteamGridDB](https://www.steamgriddb.com/) to a
 - **Graceful Fallback**: If SteamGridDB is unavailable or a game isn't found, the application uses a placeholder image
 - **Server-Side Only**: All SteamGridDB API calls happen server-side, keeping your API key secure
 
+## Migrating from games-config.json
+
+**Previous versions** of this application used a static `games-config.json` file to define games. This has been **replaced with dynamic directory-based discovery**.
+
+If you're upgrading from an older version:
+
+1. **Remove the old configuration file**:
+   ```bash
+   rm games-config.json
+   ```
+
+2. **Set up your games directory** as described in the Configuration section above
+
+3. **Update environment variables** in `.env.local`:
+   ```bash
+   GAMES_DIR=/path/to/your/games
+   AUTO_INSTALL_GAME=wine  # or your preferred command
+   ```
+
+4. **Organize your game files** into subdirectories:
+   ```bash
+   mkdir -p "$GAMES_DIR/Game-Name"
+   mv /path/to/installer.exe "$GAMES_DIR/Game-Name/"
+   ```
+
+The new approach provides better flexibility and doesn't require editing configuration files to add new games.
+
 ### Cache Management
 
 The cache is stored in `.cache/steamgriddb.json` and includes:
