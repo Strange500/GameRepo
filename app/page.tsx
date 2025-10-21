@@ -21,7 +21,15 @@ export default function Home() {
       }
     }
 
+    // Initial load
     loadGames();
+
+    // Poll for changes every 5 seconds
+    const interval = setInterval(() => {
+      loadGames();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
