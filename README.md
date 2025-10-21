@@ -1,16 +1,18 @@
 # Game Catalogue
 
-A modern, minimalist web application built with Next.js and TypeScript that displays a catalogue of games and allows users to install them via configured external scripts.
+A modern, minimalist web application built with Next.js and TypeScript that dynamically discovers games from a directory structure and allows users to install them using a configurable command.
 
 ## Features
 
-- 🎮 **Game Grid Display**: Browse games in a clean, responsive grid layout
+- 🎮 **Dynamic Game Discovery**: Automatically discovers games from a configured directory structure
+- 📁 **Directory-Based Configuration**: Each subdirectory represents a game with its executables
+- 🎯 **Executable Selection**: When multiple .exe files exist, prompts user to select which one to install
 - 🖼️ **Visual Cards**: Each game card shows cover image, title, and description
 - 🎨 **SteamGridDB Integration**: Automatically fetch high-quality game cover images from SteamGridDB
 - 💾 **Smart Caching**: Cache game metadata to minimize API calls and improve performance
 - ⚡ **One-Click Install**: Hover over a game card to reveal the install button
 - 📊 **Real-time Status**: Visual feedback for installation states (Idle, Installing, Installed, Failed)
-- 🔒 **Secure Execution**: Only commands defined in config file can be executed
+- 🔧 **Configurable Install Command**: Use any command (like `wine`) via environment variable
 - 🎨 **Minimalist Design**: Clean, dark-themed UI built with Tailwind CSS
 - 📱 **Responsive**: Works seamlessly on desktop and mobile devices
 
@@ -67,18 +69,32 @@ cd GameRepo
 # 2. Install dependencies
 npm install
 
-# 3. (Optional) Configure SteamGridDB API key for automatic game images
+# 3. Configure environment variables
 cp .env.local.example .env.local
-# Edit .env.local and add your SteamGridDB API key
-# Get your API key from: https://www.steamgriddb.com/profile/preferences
+# Edit .env.local and set:
+#   - GAMES_DIR: Path to your games directory
+#   - AUTO_INSTALL_GAME: Command to run for installation (e.g., "wine")
+#   - STEAMGRIDDB_API_KEY: (Optional) For automatic game images
 
-# 4. Run the development server
+# 4. Set up your games directory structure
+# Create a directory with game subdirectories, each containing .exe files
+# Example:
+#   /path/to/games/
+#     Half-Life/
+#       setup.exe
+#     Portal/
+#       setup.exe
+#       portal.exe
+#     Minecraft/
+#       installer.exe
+
+# 5. Run the development server
 npm run dev
 
-# 5. Open http://localhost:3000 in your browser
+# 6. Open http://localhost:3000 in your browser
 ```
 
-That's it! The application will be running and you can start browsing and installing games.
+That's it! The application will automatically discover games from your configured directory.
 
 ### Installation
 
@@ -141,46 +157,77 @@ npm start
 
 ## Configuration
 
-### games-config.json
+### Environment Variables
 
-The `games-config.json` file defines the catalogue of games. Each game entry includes:
+The application uses environment variables for configuration. Copy `.env.local.example` to `.env.local` and configure:
 
-```json
-{
-  "games": [
-    {
-      "id": "unique-game-id",
-      "title": "Game Title",
-      "description": "Game description that appears on the card",
-      "coverImage": "https://example.com/image.jpg",
-      "installCommand": "echo 'Installing game...' && your-install-script.sh"
-    }
-  ]
-}
+```bash
+# Required: Path to directory containing game subdirectories
+GAMES_DIR=/path/to/your/games
+
+# Required: Command to execute for game installation
+# The executable path will be appended as an argument
+AUTO_INSTALL_GAME=wine
+
+# Optional: SteamGridDB API key for automatic cover images
+# Get your API key from: https://www.steamgriddb.com/profile/preferences
+STEAMGRIDDB_API_KEY=your_api_key_here
+
+# Optional: Installation timeout in milliseconds (default: 24 hours)
+INSTALL_TIMEOUT_MS=86400000
 ```
 
-#### Configuration Fields
+### Games Directory Structure
 
-- **id** (string, required): Unique identifier for the game
-- **title** (string, required): Display name of the game
-- **description** (string, required): Brief description shown on the card
-- **coverImage** (string, required): URL to the game's cover image
-- **installCommand** (string, required): Shell command to execute for installation
+Games are automatically discovered from the `GAMES_DIR` directory. Each subdirectory represents a game:
 
-### Security Notes
+```
+/path/to/games/
+├── Half-Life/
+│   └── setup.exe          # Single executable
+├── Portal/
+│   ├── setup.exe         # Multiple executables
+│   ├── launcher.exe      # User will be prompted to select
+│   └── portal.exe
+└── Minecraft/
+    └── installer.exe      # Single executable
+```
 
-⚠️ **Important**: The application only executes commands defined in `games-config.json`. This prevents arbitrary command injection. However, ensure that:
+**Requirements:**
+- Each subdirectory name becomes the game title (used for SteamGridDB search)
+- Each game directory must contain at least one `.exe` file
+- If multiple `.exe` files exist, the user will be prompted to select one
+- `setup.exe` is automatically prioritized if found
 
-1. Only trusted users can modify `games-config.json`
-2. Install commands are properly validated and tested
-3. Commands don't require elevated privileges unless necessary
-4. The application is run in a secure environment
+### Installation Command
 
-### Custom Install Scripts
+The `AUTO_INSTALL_GAME` environment variable defines the base command used for installation. The application appends the absolute path of the selected executable.
 
-You can use any shell command or script for installation:
+**Example:**
+```bash
+AUTO_INSTALL_GAME=wine
+```
 
-**⚠️ CRITICAL REQUIREMENT**: Your install command **must wait** for the installation to fully complete before exiting. If your script spawns background processes or detaches the installer, the API will think the installation is complete when it's actually still running.
+Results in:
+```bash
+wine "/path/to/games/Half-Life/setup.exe"
+```
+
+**Common configurations:**
+
+```bash
+# For Wine (Windows games on Linux)
+AUTO_INSTALL_GAME=wine
+
+# For Proton
+AUTO_INSTALL_GAME=proton run
+
+# For direct execution (Linux native)
+AUTO_INSTALL_GAME=bash
+
+# For custom installer wrapper
+AUTO_INSTALL_GAME=/usr/local/bin/my-installer
+```
 
 ## SteamGridDB Integration
 
@@ -209,9 +256,9 @@ The application integrates with [SteamGridDB](https://www.steamgriddb.com/) to a
 
 ### How It Works
 
-- **Automatic Fetching**: When the application starts, it queries SteamGridDB for each game in `games-config.json` using the game's title
+- **Automatic Fetching**: When the application starts, it queries SteamGridDB for each discovered game using the directory name as the search term
 - **Smart Caching**: Fetched images are cached in `.cache/steamgriddb.json` for 7 days to minimize API calls
-- **Graceful Fallback**: If SteamGridDB is unavailable or a game isn't found, the application uses the `coverImage` URL from `games-config.json`
+- **Graceful Fallback**: If SteamGridDB is unavailable or a game isn't found, the application uses a placeholder image
 - **Server-Side Only**: All SteamGridDB API calls happen server-side, keeping your API key secure
 
 ### Cache Management
@@ -243,49 +290,61 @@ The cache will be automatically regenerated on the next request.
 1. Check that your API key is correctly set in `.env.local`
 2. Verify the API key is valid on [SteamGridDB](https://www.steamgriddb.com/profile/preferences)
 3. Check the console for error messages
-4. Ensure the game names in `games-config.json` match actual game titles
+4. Ensure the game directory names match actual game titles for better search results
 
 **Want to use without SteamGridDB?**
-Simply don't configure the `STEAMGRIDDB_API_KEY` environment variable. The application will use the `coverImage` URLs from `games-config.json` as fallbacks.
+Simply don't configure the `STEAMGRIDDB_API_KEY` environment variable. The application will use placeholder images.
 
-### Custom Install Scripts
+**No games showing up?**
+1. Verify `GAMES_DIR` is set correctly in `.env.local`
+2. Ensure the directory exists and contains subdirectories
+3. Each game subdirectory must have at least one `.exe` file
+4. Check the server console for discovery errors
 
-You can use any shell command or script for installation:
+### Installation Process
 
-**⚠️ CRITICAL REQUIREMENT**: Your install command **must wait** for the installation to fully complete before exiting. If your script spawns background processes or detaches the installer, the API will think the installation is complete when it's actually still running.
+The installation process works as follows:
 
-**Simple Echo Example:**
-```json
-"installCommand": "echo 'Installing Game...' && sleep 2 && echo 'Done!'"
+1. User clicks "Install" on a game card
+2. If multiple `.exe` files exist, a selection dialog appears
+3. User selects the desired executable (or it's auto-selected if only one exists)
+4. The application executes: `${AUTO_INSTALL_GAME} "/absolute/path/to/selected.exe"`
+5. Installation status is displayed in real-time
+
+**⚠️ CRITICAL REQUIREMENT**: The `AUTO_INSTALL_GAME` command **must wait** for the installation to fully complete before exiting. If your command spawns background processes or detaches the installer, the API will think the installation is complete when it's actually still running.
+
+**Examples of proper configurations:**
+
+**Simple Echo (for testing):**
+```bash
+AUTO_INSTALL_GAME="echo Installing:"
 ```
 
-**Shell Script Example (Correct - Waits for completion):**
+**Wine (Windows games on Linux):**
+```bash
+AUTO_INSTALL_GAME="wine"
+```
+
+**Wine with wrapper script:**
+```bash
+AUTO_INSTALL_GAME="/path/to/wine-wrapper.sh"
+```
+
+Where `wine-wrapper.sh` contains:
 ```bash
 #!/bin/bash
-# install-game.sh
-./installer.exe /SILENT
-# Script waits for installer.exe to complete before exiting
+wine "$1"
 exit $?
-```
-
-**Shell Script Example (INCORRECT - Returns immediately):**
-```bash
-#!/bin/bash
-# install-game.sh - DON'T DO THIS!
-./installer.exe /SILENT &
-# Script exits immediately while installer runs in background
-exit 0
 ```
 
 **Handling Background Processes:**
 If your installer tool spawns background processes, you must wait for them:
 ```bash
 #!/bin/bash
-my-installer-tool setup.exe &
+my-installer-tool "$1" &
 INSTALLER_PID=$!
 wait $INSTALLER_PID
-EXIT_CODE=$?
-exit $EXIT_CODE
+exit $?
 ```
 
 **Monitoring Process Completion:**
@@ -293,7 +352,7 @@ For installers that detach, monitor the actual process:
 ```bash
 #!/bin/bash
 # Start installer
-xvfb-run installer.exe &
+xvfb-run wine "$1" &
 INSTALLER_PID=$!
 
 # Wait for the actual installer process to complete
@@ -304,38 +363,29 @@ done
 exit 0
 ```
 
-**Shell Script Example:**
-```json
-"installCommand": "/path/to/install-scripts/install-game.sh --game-id minecraft"
-```
-
-**Package Manager Example:**
-```json
-"installCommand": "apt-get install -y game-package || echo 'Installation failed'"
-```
-
-**Custom Script with Arguments:**
-```json
-"installCommand": "./scripts/installer.sh --name 'Game Name' --version 1.0.0"
-```
-
 ## Project Structure
 
 ```
 GameRepo/
 ├── app/                      # Next.js App Router
 │   ├── api/                  # API routes
+│   │   ├── games/            # Game discovery endpoint
+│   │   │   └── route.ts      # GET handler for discovering games
 │   │   └── install/          # Installation endpoint
 │   │       └── route.ts      # POST handler for installations
 │   ├── layout.tsx            # Root layout
 │   ├── page.tsx              # Home page with game grid
 │   └── globals.css           # Global styles
 ├── components/               # React components
-│   └── GameCard.tsx          # Game card component
+│   └── GameCard.tsx          # Game card with executable selection
+├── src/
+│   └── lib/                  # Utility libraries
+│       ├── gameDiscovery.ts  # Game directory discovery logic
+│       └── steamgriddb.ts    # SteamGridDB integration
 ├── types/                    # TypeScript type definitions
 │   └── game.ts               # Game-related types
 ├── public/                   # Static assets
-├── games-config.json         # Game catalogue configuration
+├── .env.local.example        # Environment variable template
 ├── package.json              # Project dependencies
 ├── tsconfig.json             # TypeScript configuration
 ├── tailwind.config.ts        # Tailwind CSS configuration
@@ -345,15 +395,18 @@ GameRepo/
 
 ## Usage
 
-1. **Browse Games**: The home page displays all games from `games-config.json`
-2. **View Details**: Each card shows the game's cover image, title, and description
-3. **Install Game**: Hover over a game card to reveal the "Install" button
-4. **Monitor Status**: The button shows real-time status:
+1. **Configure Environment**: Set up `.env.local` with `GAMES_DIR` and `AUTO_INSTALL_GAME`
+2. **Organize Games**: Create a directory structure with game subdirectories containing `.exe` files
+3. **Browse Games**: The home page displays all discovered games with their metadata
+4. **View Details**: Each card shows the game's cover image, title, and description
+5. **Install Game**: Hover over a game card to reveal the "Install" button
+6. **Select Executable** (if needed): If multiple `.exe` files exist, select which one to install
+7. **Monitor Status**: The button shows real-time status:
    - **Install**: Ready to install
    - **Installing...**: Installation in progress (with spinner)
    - **Installed**: Successfully installed (with checkmark)
    - **Retry**: Failed installation, click to try again
-5. **Status Messages**: Success/failure messages appear at the bottom of the card
+8. **Status Messages**: Success/failure messages appear at the bottom of the card
 
 ## API Endpoints
 
@@ -364,7 +417,8 @@ Triggers installation of a game.
 **Request Body:**
 ```json
 {
-  "gameId": "game-unique-id"
+  "gameId": "game-id",
+  "executablePath": "/absolute/path/to/executable.exe"  // Optional, required if multiple executables
 }
 ```
 
@@ -373,7 +427,20 @@ Triggers installation of a game.
 {
   "success": true,
   "message": "Game Title installed successfully",
-  "gameId": "game-unique-id"
+  "gameId": "game-id"
+}
+```
+
+**Response (Requires Selection):**
+```json
+{
+  "success": false,
+  "message": "Multiple executables found. Please select one.",
+  "requiresSelection": true,
+  "executables": [
+    "/path/to/setup.exe",
+    "/path/to/game.exe"
+  ]
 }
 ```
 
@@ -382,7 +449,26 @@ Triggers installation of a game.
 {
   "success": false,
   "message": "Error message",
-  "gameId": "game-unique-id"
+  "gameId": "game-id"
+}
+```
+
+### GET /api/games
+
+Retrieves all discovered games.
+
+**Response:**
+```json
+{
+  "games": [
+    {
+      "id": "half-life",
+      "title": "Half-Life",
+      "description": "Half-Life",
+      "coverImage": "https://...",
+      "executables": ["/path/to/setup.exe"]
+    }
+  ]
 }
 ```
 
@@ -401,19 +487,14 @@ The app uses Tailwind CSS for styling. Modify `tailwind.config.ts` to customize 
 
 ### Adding New Games
 
-Edit `games-config.json` and add a new game entry:
+Simply add a new subdirectory to your `GAMES_DIR` with at least one `.exe` file:
 
-```json
-{
-  "id": "new-game",
-  "title": "New Game",
-  "description": "Description of the new game",
-  "coverImage": "https://example.com/cover.jpg",
-  "installCommand": "your-install-command"
-}
+```bash
+mkdir "$GAMES_DIR/New-Game"
+cp /path/to/installer.exe "$GAMES_DIR/New-Game/"
 ```
 
-The changes will be reflected immediately in development mode.
+The changes will be reflected immediately after refreshing the page.
 
 ### Timeout Configuration
 
@@ -461,6 +542,23 @@ done
 ```
 
 **Verify your script waits** by running it manually and confirming it doesn't return until installation is truly complete.
+
+### Configuration Errors
+
+**GAMES_DIR not configured:**
+1. Ensure `.env.local` exists and contains `GAMES_DIR=/path/to/games`
+2. Verify the path is absolute and the directory exists
+3. Restart the development server after changing `.env.local`
+
+**AUTO_INSTALL_GAME not configured:**
+1. Ensure `.env.local` contains `AUTO_INSTALL_GAME=your-command`
+2. Verify the command is available in your PATH or use an absolute path
+3. Restart the development server after changing `.env.local`
+
+**No executables found:**
+1. Ensure game directories contain `.exe` files
+2. Check file permissions (files must be readable)
+3. Verify file extensions are exactly `.exe` (case-insensitive)
 
 ### Installation Fails Due to Timeout
 
