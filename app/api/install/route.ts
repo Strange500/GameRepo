@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import gamesConfig from '@/games-config.json';
+import { discoverGames } from '@/src/lib/gameDiscovery';
 import type { InstallResponse } from '@/types/game';
 
 const execPromise = promisify(exec);
@@ -23,7 +23,7 @@ function getShellPath(): string | undefined {
 
 export async function POST(request: NextRequest) {
   try {
-    const { gameId } = await request.json();
+    const { gameId, executablePath } = await request.json();
 
     if (!gameId) {
       return NextResponse.json(
@@ -32,8 +32,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the game in the configuration
-    const game = gamesConfig.games.find((g) => g.id === gameId);
+    const gamesDir = process.env.GAMES_DIR;
+    const autoInstallCommand = process.env.AUTO_INSTALL_GAME;
+
+    if (!gamesDir) {
+      return NextResponse.json(
+        { success: false, message: 'GAMES_DIR environment variable not configured' },
+        { status: 500 }
+      );
+    }
+
+    if (!autoInstallCommand) {
+      return NextResponse.json(
+        { success: false, message: 'AUTO_INSTALL_GAME environment variable not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Find the game in the discovered games
+    const discoveredGames = discoverGames(gamesDir);
+    const game = discoveredGames.find((g) => g.id === gameId);
 
     if (!game) {
       return NextResponse.json(
@@ -42,16 +60,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Security: Only execute commands from the configuration file
-    // This prevents arbitrary command injection
-    const installCommand = game.installCommand;
+    // Determine which executable to use
+    let executableToInstall: string;
+
+    if (executablePath) {
+      // Verify the provided executable is valid for this game
+      if (!game.executables.includes(executablePath)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid executable path' },
+          { status: 400 }
+        );
+      }
+      executableToInstall = executablePath;
+    } else if (game.executables.length === 1) {
+      // Only one executable, use it
+      executableToInstall = game.executables[0];
+    } else {
+      // Multiple executables but none selected
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Multiple executables found. Please select one.',
+          requiresSelection: true,
+          executables: game.executables,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Build the install command: AUTO_INSTALL_GAME + absolute path to executable
+    const installCommand = `${autoInstallCommand} "${executableToInstall}"`;
 
     try {
       // Execute the install command
-      // Use platform's default shell (cross-platform compatible)
       const shellPath = getShellPath();
       const { stdout, stderr } = await execPromise(installCommand, {
-        timeout: INSTALL_TIMEOUT_MS, // Configurable timeout (default: 30 minutes)
+        timeout: INSTALL_TIMEOUT_MS,
         shell: shellPath,
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for long outputs
       });
@@ -59,7 +103,6 @@ export async function POST(request: NextRequest) {
       console.log(`Install output for ${gameId}:`, stdout);
       
       // Log stderr but don't treat it as an error unless the command failed
-      // Many installers output warnings and info to stderr
       if (stderr) {
         console.log(`Install stderr for ${gameId}:`, stderr);
       }
